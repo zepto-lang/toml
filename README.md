@@ -28,7 +28,7 @@ Encoding to TOML looks like this:
 ; 3 = "something"
 ```
 
-Integrity is, of course preserved.
+Integrity is preserved, of course.
 ```clojure
 (define test #{"key" (1 2 3)})
 (hash-eqv? test (toml:parse (toml:dump test))) ; this yields #t
