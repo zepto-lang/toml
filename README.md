@@ -12,21 +12,20 @@ the most basic usage examples I can think of.
 Decoding from TOML looks like this:
 ```clojure
 (define x (toml:parse
-            "{ \"unnamed\": 10,
-               'lol': {
-                 10: 'hello',
-                 11: [1, 2]
-               }
-             }"))
+            "unnamed = 10
+             lol     = { 10: 'hello', 11: [1, 2] }
+             [this]
+             that = 10"))
 ; this will return a hash-map like so:
-; #{lol: #{10: hello, 11: (1 2)}, unnamed: 10, }
+; #{lol: #{10: hello, 11: (1 2)}, unnamed: 10, this: #{that: 10}, }
 ```
 
 Encoding to TOML looks like this:
 ```clojure
 (define x (toml:dump #{10 (1 2) 3 "something"}))
 ; this will return a string like so:
-; {10: [1, 2], 3: "something"}
+; 10 = [1, 2]
+; 3 = "something"
 ```
 
 Integrity is, of course preserved.
