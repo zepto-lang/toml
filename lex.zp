@@ -1,0 +1,68 @@
+(define (toml:lex stream)
+  (if (null? stream)
+    #f
+    (if (null? (car stream))
+      #f
+      (let* ((token (car stream))
+             (token-key (car token))
+             (token-value (cadr token)))
+        (cond
+          ((eq? token-key "toml-array")
+            (toml:lex-array token-value))
+          ((eq? token-key "toml-object")
+            (toml:lex-object token-value))
+          ((eq? token-key "toml-num") #t)
+          ((or (eq? token-key "prop-delim") (eq? token-value #\=)) #t)
+          ((or (eq? token-key "whitespace") (eq? token-key "newline")) #t)
+          ((or (eq? token-key "toml-string") (eq? token-key "toml-id"))
+            (string? token-value))
+          (else #f))))))
+
+(define (toml:lex-all stream)
+  (all? toml:lex stream))
+
+(define (toml:lex-array stream)
+  (cond
+    ((null? stream) #t)
+    ((= 1 (length stream))
+      (let* ((element (caar stream)))
+        (cond
+          ((eq? element "toml-num") #t)
+          ((eq? element "toml-string") #t)
+          ((eq? element "toml-id") #t)
+          (else #f))))
+    ((= 2 (length stream)) #f)
+    (else
+      (let* ((stream (filter (lambda (x) (not (eq? (car x) "whitespace"))) stream))
+             (elem (caar stream))
+             (next (caadr stream)))
+        (if (and 
+              (or (eq? elem "toml-string")
+                  (eq? elem "toml-num"))
+              (eq? next "elem-delim"))
+            (toml:lex-array (cddr stream))
+            #f)))))
+
+(define (toml:lex-object stream)
+  (if (null? stream)
+    #t
+    (if (< (length stream) 3)
+      #f
+      (let* ((stream (filter (lambda (x) (not (eq? (car x) "whitespace"))) stream))
+             (element (caar stream))
+             (delim (list-ref stream 1))
+             (val (car (list-ref stream 2)))
+             (val-body (cadr (list-ref stream 2)))
+             (xand (lambda (x y) (if x (eval y) #f)))
+             (value? (lambda (x) (or (eq? x "toml-string") (eq? x "toml-num")))))
+          (if (and
+                (value? element)
+                (and (eq? (car delim) "prop-delim") (eq? (cadr delim) #\:))
+                (or (value? val) 
+                    (xand (eq? val "toml-array") '(toml:lex-array val-body))
+                    (xand (eq? val "toml-object") '(toml:lex-object val-body))))
+              (if (> (length stream) 3)
+                  (and (eq? (car (list-ref stream 3)) "elem-delim")
+                       (toml:lex-object (cddddr stream)))
+                  #t)
+              #f)))))
